@@ -5,7 +5,7 @@ if (!Array.prototype.indexOf) {
        if (this[i] === obj) { return i; }
     }
     return -1;
-  }
+  };
 }
 
 // Event Emitter code, taken from Dashku.com
@@ -56,36 +56,29 @@ var reconnectSwitch     = false
 
 var attemptReconnect = function(time){
   console.log("attempting reconnect");
-  spawn(function(){
-    setTimeout(function(){
-      if (chassis.socket.readyState !== "open") {
-        delete chassis.socket;
-        reconnectionTimeout *= 1.5;      
-        console.log("failed, will try again in ms: ", reconnectionTimeout);
-        attemptReconnect(reconnectionTimeout);
-      } else {
-        console.log("successfully reconnected");
-        reconnectSwitch = false;
-        reconnectionTimeout = 1000;
-        chassis.set(chassis.setCache);
-
-        // Is it possible that the client channels is not unique?
-        // Also, WTF? client shouldn't know channels.
-        // It should be about the session id.
-
-        for (var c=0;c < chassis.channelManager.channels.length;c++) {
-          var channel = chassis.channelManager.channels[c];
-          chassis.subscribe(channel);
-        };
-      }
-    }, time);
-  });
+  spawn();
+  setTimeout(function(){
+    if (chassis.socket.readyState !== "open") {
+      if (reconnectionTimeout < 10000) reconnectionTimeout *= 1.5;
+      console.log("failed, will try again in ms: ", reconnectionTimeout);
+      attemptReconnect(reconnectionTimeout);
+    } else {
+      console.log("successfully reconnected");
+      reconnectSwitch = false;
+      reconnectionTimeout = 1000;
+      chassis.set(chassis.setCache);
+      for (var c=0;c < chassis.channelManager.channels.length;c++) {
+        var channel = chassis.channelManager.channels[c];
+        chassis.subscribe(channel);
+      };
+    }
+  }, time);
 };
 
-var spawn = function(cb){
+var spawn = function(){
   var url = 'ws://'+document.location.host;
   var socket = new eio.Socket({
-  	flashPath: '/js'
+    flashPath: '/js/'
   });
   socket.on('open', function () {
 
@@ -101,15 +94,14 @@ var spawn = function(cb){
     });
 
     // server dies or internet connection dropped
-    socket.on('close', function () { 
+    socket.on('close', function () {
       console.log('closed');
       reconnectSwitch = true;
       attemptReconnect(reconnectionTimeout);
     });
   });
-  
+
   chassis.socket = socket;
-  if (typeof cb === "function") {cb();}
 }
 
 chassis = {
@@ -134,7 +126,7 @@ chassis = {
     addChannel: function(channel) {
       var self = this;
       if (self.channels.indexOf(channel) == -1 ) {
-        self.channels.push(channel);  
+        self.channels.push(channel);
       }
     },
 
@@ -183,4 +175,4 @@ chassis = {
 
 };
 
-spawn()
+spawn();
